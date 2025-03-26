@@ -2,6 +2,7 @@ console.log('[DinBenDon Helper] load content.js');
 
 // 全局狀態
 let orderInfo = null;
+let originalTable = null; // 添加全局變數以供其他函數使用
 const STORAGE_KEYS = {
   ORDER_INFO: 'DinBenDan-Ext-Info',
   EXTENSION_STATE: 'DinBenDan-Ext-Enabled'
@@ -130,7 +131,7 @@ function initOrderStore() {
   }
 }
 
-function updateOrderPaymentInfo(orderId, buyer, isPaid) {
+function updateOrderPaymentInfo(orderId, buyer, isPaid, noChangeGiven = 0) {
   if (!orderId) return;
 
   // 確保訂單資訊物件存在
@@ -148,8 +149,15 @@ function updateOrderPaymentInfo(orderId, buyer, isPaid) {
     orderInfo.order_infos.push(buyerOrderInfo);
   }
 
-  // 更新買家的付款狀態
-  buyerOrderInfo.buyers[buyer] = isPaid;
+  // 更新買家的付款狀態和找錢狀態
+  if (isPaid) {
+    buyerOrderInfo.buyers[buyer] = {
+      paid: true,
+      noChangeGiven: noChangeGiven
+    };
+  } else {
+    buyerOrderInfo.buyers[buyer] = false;
+  }
 
   // 儲存到 localStorage
   localStorage.setItem(STORAGE_KEYS.ORDER_INFO, JSON.stringify(orderInfo));
@@ -223,8 +231,11 @@ function setupOrderManagement() {
   const activeTable = getActiveTable();
   if (!activeTable) return;
 
-  const originalTable = activeTable.querySelector('table.merge-table');
-  if (!originalTable) return;
+  const orgTable = activeTable.querySelector('table.merge-table');
+  if (!orgTable) return;
+  
+  // 保存為全局變數
+  originalTable = orgTable;
 
   // 初始化訂單資訊
   initOrderStore();
@@ -342,6 +353,20 @@ function createPaymentTables(originalTable) {
   paidTableTitle.textContent = '已繳費訂單';
   paidTableTitle.className = 'mb-3';
   const paidTable = originalTable.cloneNode(true);
+  
+  // 在已繳費表格中添加未找錢的標頭欄位
+  const paidTableHeader = paidTable.querySelector('thead tr');
+  if (paidTableHeader) {
+    const noChangeHeader = document.createElement('th');
+    noChangeHeader.textContent = '未找錢數量';
+    noChangeHeader.className = 'text-center';
+    noChangeHeader.style.cssText = `
+      width: 100px;
+      background-color: #D0FAC0;
+    `;
+    paidTableHeader.appendChild(noChangeHeader);
+  }
+  
   paidTableContainer.appendChild(paidTableTitle);
   paidTableContainer.appendChild(paidTable);
 
@@ -435,7 +460,77 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
 
       // 檢查是否已付款（使用儲存的狀態）
       const currentOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
-      const buyerPaidStatus = currentOrderInfo?.buyers[buyer] || false;
+      let buyerPaidStatus = false;
+      let noChangeGiven = false;
+
+      // 如果有訂單資訊，取得付款狀態和找錢狀態
+      if (currentOrderInfo && currentOrderInfo.buyers[buyer]) {
+        if (typeof currentOrderInfo.buyers[buyer] === 'object') {
+          buyerPaidStatus = currentOrderInfo.buyers[buyer].paid || false;
+          noChangeGiven = currentOrderInfo.buyers[buyer].noChangeGiven || 0;
+        } else {
+          buyerPaidStatus = currentOrderInfo.buyers[buyer];
+        }
+      }
+
+      // 如果是已付款表格，添加未找錢標記
+      if (isPaid && table === paidTable) {
+        const noChangeCell = document.createElement('td');
+        noChangeCell.className = 'text-center';
+        
+        // 創建輸入框容器
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'input-group input-group-sm';
+        inputGroup.style.cssText = `
+          width: 80px;
+          margin: 0 auto;
+        `;
+        
+        // 創建輸入框
+        const noChangeInput = document.createElement('input');
+        noChangeInput.type = 'number';
+        noChangeInput.className = 'form-control';
+        noChangeInput.style.cssText = `
+          background-color: #f8f9fa;
+          text-align: center;
+          min-width: 60px;
+          font-size: 14px;
+        `;
+        noChangeInput.value = noChangeGiven || 0;
+        noChangeInput.min = 0;
+        
+        // 輸入框變更事件
+        noChangeInput.addEventListener('change', (e) => {
+          e.stopPropagation(); // 防止觸發整行的點擊事件
+          const newAmount = parseInt(e.target.value) || 0;
+          
+          // 更新存儲的未找錢數量
+          updateOrderPaymentInfo(orderId, buyer, true, newAmount);
+          
+          // 更新輸入框樣式
+          if (newAmount > 0) {
+            // noChangeInput.style.backgroundColor = '#ffcc00';
+            noChangeInput.style.fontWeight = 'bold';
+          } else {
+            // noChangeInput.style.backgroundColor = '#f8f9fa';
+            noChangeInput.style.fontWeight = 'normal';
+          }
+        });
+        
+        // 設置初始樣式
+        if (noChangeGiven > 0) {
+          noChangeInput.style.fontWeight = 'bold';
+        }
+        
+        // 防止點擊輸入框時觸發行點擊事件
+        noChangeInput.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+        
+        inputGroup.appendChild(noChangeInput);
+        noChangeCell.appendChild(inputGroup);
+        row.appendChild(noChangeCell);
+      }
 
       // 如果付款狀態不符合，移動到對應的表格
       if (buyerPaidStatus !== isPaid) {
@@ -444,7 +539,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
       }
 
       // 更新初始狀態
-      updateOrderPaymentInfo(orderId, buyer, buyerPaidStatus);
+      updateOrderPaymentInfo(orderId, buyer, buyerPaidStatus, noChangeGiven);
 
       // 設定行點擊事件
       setupRowClickHandler(row, buyer, orderId, paidTable, unpaidTable, updateTotalAmount);
@@ -467,6 +562,84 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
   );
   
   if (!existingRow) {
+    // 如果移動到未繳費表格，移除未找錢的欄位
+    if (targetTable.querySelector('thead th:last-child')?.textContent !== '未找錢數量') {
+      const lastCell = row.querySelector('td:last-child');
+      if (lastCell && row.children.length > originalTable.querySelector('thead th').length) {
+        row.removeChild(lastCell);
+      }
+    }
+    // 如果移動到已繳費表格且沒有未找錢欄位，則添加
+    else if (targetTable.querySelector('thead th:last-child')?.textContent === '未找錢數量' && 
+             row.children.length <= originalTable.querySelector('thead tr').children.length) {
+      const orderId = getOrderId();
+      const currentOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
+      let noChangeGiven = 0;
+      
+      // 檢查是否有未找錢的狀態
+      if (currentOrderInfo && currentOrderInfo.buyers[buyer] && 
+          typeof currentOrderInfo.buyers[buyer] === 'object') {
+        noChangeGiven = currentOrderInfo.buyers[buyer].noChangeGiven || 0;
+      }
+      
+      // 創建未找錢欄位
+      const noChangeCell = document.createElement('td');
+      noChangeCell.className = 'text-center';
+      
+      // 創建輸入框容器
+      const inputGroup = document.createElement('div');
+      inputGroup.className = 'input-group input-group-sm';
+      inputGroup.style.cssText = `
+        width: 80px;
+        margin: 0 auto;
+      `;
+      
+      // 創建輸入框
+      const noChangeInput = document.createElement('input');
+      noChangeInput.type = 'number';
+      noChangeInput.className = 'form-control';
+      noChangeInput.style.cssText = `
+        text-align: center;
+        min-width: 60px;
+        font-size: 14px;
+      `;
+      noChangeInput.value = noChangeGiven;
+      noChangeInput.min = 0;
+      
+      // 輸入框變更事件
+      noChangeInput.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const newAmount = parseInt(e.target.value) || 0;
+        
+        // 更新存儲的未找錢數量
+        updateOrderPaymentInfo(orderId, buyer, true, newAmount);
+        
+        // 更新輸入框樣式
+        if (newAmount > 0) {
+          noChangeInput.style.backgroundColor = '#ffcc00';
+          noChangeInput.style.fontWeight = 'bold';
+        } else {
+          noChangeInput.style.backgroundColor = '#f8f9fa';
+          noChangeInput.style.fontWeight = 'normal';
+        }
+      });
+      
+      // 設置初始樣式
+      if (noChangeGiven > 0) {
+        noChangeInput.style.backgroundColor = '#ffcc00';
+        noChangeInput.style.fontWeight = 'bold';
+      }
+      
+      // 防止點擊輸入框時觸發行點擊事件
+      noChangeInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      
+      inputGroup.appendChild(noChangeInput);
+      noChangeCell.appendChild(inputGroup);
+      row.appendChild(noChangeCell);
+    }
+    
     targetTbody.appendChild(row);
   } else {
     // 如果已經存在，則移除當前行
@@ -485,11 +658,23 @@ function setupRowClickHandler(row, buyer, orderId, paidTable, unpaidTable, updat
 
     // 取得目前狀態並切換
     const currentOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
-    const currentPaid = currentOrderInfo?.buyers[buyer] || false;
+    let currentPaid = false;
+    let noChangeGiven = false;
+
+    // 解析當前狀態
+    if (currentOrderInfo && currentOrderInfo.buyers[buyer]) {
+      if (typeof currentOrderInfo.buyers[buyer] === 'object') {
+        currentPaid = currentOrderInfo.buyers[buyer].paid || false;
+        noChangeGiven = currentOrderInfo.buyers[buyer].noChangeGiven || 0;
+      } else {
+        currentPaid = currentOrderInfo.buyers[buyer];
+      }
+    }
+
     const newPaid = !currentPaid;
 
     // 更新儲存的狀態
-    updateOrderPaymentInfo(orderId, buyer, newPaid);
+    updateOrderPaymentInfo(orderId, buyer, newPaid, newPaid ? noChangeGiven : 0);
 
     // 移動行到對應的表格
     const targetTable = newPaid ? paidTable : unpaidTable;
