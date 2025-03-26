@@ -358,13 +358,14 @@ function createPaymentTables(originalTable) {
   const paidTableHeader = paidTable.querySelector('thead tr');
   if (paidTableHeader) {
     const noChangeHeader = document.createElement('th');
-    noChangeHeader.textContent = '未找錢數量';
+    noChangeHeader.textContent = '未找錢';
     noChangeHeader.className = 'text-center';
     noChangeHeader.style.cssText = `
       width: 100px;
       background-color: #D0FAC0;
     `;
-    paidTableHeader.appendChild(noChangeHeader);
+    // 在表頭首位插入未找錢欄位
+    paidTableHeader.insertBefore(noChangeHeader, paidTableHeader.firstChild);
   }
   
   paidTableContainer.appendChild(paidTableTitle);
@@ -410,7 +411,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
     
     paidRows.forEach(row => {
       if (row.style.display === 'none') return;
-      const moneyCell = row.children[2];
+      const moneyCell = row.querySelector('td:nth-child(4)');
       if (moneyCell) {
         paidTotal += parseInt(moneyCell.textContent) || 0;
       }
@@ -529,7 +530,8 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
         
         inputGroup.appendChild(noChangeInput);
         noChangeCell.appendChild(inputGroup);
-        row.appendChild(noChangeCell);
+        // 在行的首位插入未找錢欄位
+        row.insertBefore(noChangeCell, row.firstChild);
       }
 
       // 如果付款狀態不符合，移動到對應的表格
@@ -562,16 +564,21 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
   );
   
   if (!existingRow) {
-    // 如果移動到未繳費表格，移除未找錢的欄位
-    if (targetTable.querySelector('thead th:last-child')?.textContent !== '未找錢數量') {
-      const lastCell = row.querySelector('td:last-child');
-      if (lastCell && row.children.length > originalTable.querySelector('thead th').length) {
-        row.removeChild(lastCell);
+    // 檢查目標表格的表頭首欄是否為「未找錢」
+    const isTargetTableHasNoChangeColumn = targetTable.querySelector('thead tr th:first-child')?.textContent === '未找錢';
+    
+    // 檢查行的首欄是否是未找錢欄位（通過檢查其中是否有數字輸入框）
+    const hasNoChangeCell = row.querySelector('td:first-child input[type="number"]') !== null;
+    
+    // 如果移動到未繳費表格，且當前行有未找錢欄位，則移除該欄位
+    if (!isTargetTableHasNoChangeColumn && hasNoChangeCell) {
+      const firstCell = row.querySelector('td:first-child');
+      if (firstCell) {
+        row.removeChild(firstCell);
       }
     }
-    // 如果移動到已繳費表格且沒有未找錢欄位，則添加
-    else if (targetTable.querySelector('thead th:last-child')?.textContent === '未找錢數量' && 
-             row.children.length <= originalTable.querySelector('thead tr').children.length) {
+    // 如果移動到已繳費表格，且當前行沒有未找錢欄位，則添加該欄位
+    else if (isTargetTableHasNoChangeColumn && !hasNoChangeCell) {
       const orderId = getOrderId();
       const currentOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
       let noChangeGiven = 0;
@@ -637,7 +644,8 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
       
       inputGroup.appendChild(noChangeInput);
       noChangeCell.appendChild(inputGroup);
-      row.appendChild(noChangeCell);
+      // 在行的首位插入未找錢欄位
+      row.insertBefore(noChangeCell, row.firstChild);
     }
     
     targetTbody.appendChild(row);
