@@ -58,7 +58,22 @@ function addExtensionToggleButton(extensionState) {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    transition: transform 0.3s ease;
+    ${extensionState.isEnabled ? 'transform: translateX(calc(100% - 20px));' : 'transform: translateX(0);'}
+    cursor: default;
   `;
+  
+  // 當滑鼠移入容器時顯示完整按鈕列
+  buttonContainer.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateX(0)';
+  });
+  
+  // 當滑鼠移出容器時隱藏按鈕列
+  buttonContainer.addEventListener('mouseleave', function() {
+    if (extensionState.isEnabled) {
+      this.style.transform = 'translateX(calc(100% - 20px))';
+    }
+  });
 
   // 創建啟用/停用按鈕
   const toggle = document.createElement('button');
@@ -69,25 +84,11 @@ function addExtensionToggleButton(extensionState) {
     cursor: pointer;
     font-size: 14px;
     color: white;
-    transition: transform 0.3s ease;
     white-space: nowrap;
-    ${extensionState.isEnabled ? 'transform: translateX(calc(100% - 10px));' : 'transform: translateX(0);'}
   `;
   toggle.textContent = extensionState.isEnabled ? '點擊停用插件' : '點擊啟用插件';
   toggle.style.backgroundColor = extensionState.isEnabled ? '#dc3545' : '#28a745';
-  
-  // 只在啟用狀態時添加滑鼠移入/移出效果
-  if (extensionState.isEnabled) {
-    // 滑鼠移入時顯示完整按鈕
-    toggle.addEventListener('mouseenter', () => {
-      toggle.style.transform = 'translateX(0)';
-    });
-    
-    // 滑鼠移出時隱藏按鈕
-    toggle.addEventListener('mouseleave', () => {
-      toggle.style.transform = 'translateX(calc(100% - 10px))';
-    });
-  }
+  toggle.style.cursor = 'pointer';
 
   toggle.addEventListener('click', () => {
     const newState = !extensionState.isEnabled;
@@ -111,22 +112,11 @@ function addExtensionToggleButton(extensionState) {
       cursor: pointer;
       font-size: 14px;
       color: white;
-      transition: transform 0.3s ease;
-      transform: translateX(calc(100% - 10px));
       white-space: nowrap;
       background-color: #ff6b6b;
     `;
     clearAllButton.textContent = '完整清除資料';
-    
-    // 滑鼠移入時顯示完整按鈕
-    clearAllButton.addEventListener('mouseenter', () => {
-      clearAllButton.style.transform = 'translateX(0)';
-    });
-    
-    // 滑鼠移出時隱藏按鈕
-    clearAllButton.addEventListener('mouseleave', () => {
-      clearAllButton.style.transform = 'translateX(calc(100% - 10px))';
-    });
+    clearAllButton.style.cursor = 'pointer';
 
     // 完整清除資料按鈕點擊事件
     clearAllButton.addEventListener('click', () => {
