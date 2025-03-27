@@ -48,13 +48,22 @@ function updateExtensionState(isEnabled) {
 }
 
 function addExtensionToggleButton(extensionState) {
-  const toggle = document.createElement('button');
-  toggle.className = 'btn';
-  toggle.style.cssText = `
+  // 創建按鈕容器
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = `
     position: fixed;
     bottom: 5%;
     right: 0;
     z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  `;
+
+  // 創建啟用/停用按鈕
+  const toggle = document.createElement('button');
+  toggle.className = 'btn';
+  toggle.style.cssText = `
     padding: 5px 10px;
     border-radius: 4px 0 0 4px;
     cursor: pointer;
@@ -67,6 +76,22 @@ function addExtensionToggleButton(extensionState) {
   toggle.textContent = extensionState.isEnabled ? '點擊停用插件' : '點擊啟用插件';
   toggle.style.backgroundColor = extensionState.isEnabled ? '#dc3545' : '#28a745';
   
+  // 創建完整清除資料按鈕
+  const clearAllButton = document.createElement('button');
+  clearAllButton.className = 'btn';
+  clearAllButton.style.cssText = `
+    padding: 5px 10px;
+    border-radius: 4px 0 0 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    transition: transform 0.3s ease;
+    transform: translateX(calc(100% - 10px));
+    white-space: nowrap;
+    background-color: #ff6b6b;
+  `;
+  clearAllButton.textContent = '完整清除資料';
+  
   // 滑鼠移入時顯示完整按鈕
   toggle.addEventListener('mouseenter', () => {
     toggle.style.transform = 'translateX(0)';
@@ -77,6 +102,16 @@ function addExtensionToggleButton(extensionState) {
     toggle.style.transform = 'translateX(calc(100% - 10px))';
   });
 
+  // 滑鼠移入時顯示完整按鈕
+  clearAllButton.addEventListener('mouseenter', () => {
+    clearAllButton.style.transform = 'translateX(0)';
+  });
+  
+  // 滑鼠移出時隱藏按鈕
+  clearAllButton.addEventListener('mouseleave', () => {
+    clearAllButton.style.transform = 'translateX(calc(100% - 10px))';
+  });
+
   toggle.addEventListener('click', () => {
     const newState = !extensionState.isEnabled;
     toggle.textContent = newState ? '點擊停用插件' : '點擊啟用插件';
@@ -84,8 +119,22 @@ function addExtensionToggleButton(extensionState) {
     updateExtensionState(newState);
     location.reload();
   });
+
+  // 完整清除資料按鈕點擊事件
+  clearAllButton.addEventListener('click', () => {
+    if (confirm('確定要完整清除所有資料嗎？此操作無法復原。')) {
+      // 清除所有相關的 localStorage 資料
+      localStorage.removeItem(STORAGE_KEYS.ORDER_INFO);
+      localStorage.removeItem(STORAGE_KEYS.EXTENSION_STATE);
+      alert('所有資料已清除，頁面將重新載入。');
+      location.reload();
+    }
+  });
   
-  document.body.appendChild(toggle);
+  // 將按鈕加入容器
+  buttonContainer.appendChild(toggle);
+  buttonContainer.appendChild(clearAllButton);
+  document.body.appendChild(buttonContainer);
 }
 
 // ==== 數據存儲管理 ====
