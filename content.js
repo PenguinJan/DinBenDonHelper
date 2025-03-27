@@ -70,47 +70,24 @@ function addExtensionToggleButton(extensionState) {
     font-size: 14px;
     color: white;
     transition: transform 0.3s ease;
-    transform: translateX(calc(100% - 10px));
     white-space: nowrap;
+    ${extensionState.isEnabled ? 'transform: translateX(calc(100% - 10px));' : 'transform: translateX(0);'}
   `;
   toggle.textContent = extensionState.isEnabled ? '點擊停用插件' : '點擊啟用插件';
   toggle.style.backgroundColor = extensionState.isEnabled ? '#dc3545' : '#28a745';
   
-  // 創建完整清除資料按鈕
-  const clearAllButton = document.createElement('button');
-  clearAllButton.className = 'btn';
-  clearAllButton.style.cssText = `
-    padding: 5px 10px;
-    border-radius: 4px 0 0 4px;
-    cursor: pointer;
-    font-size: 14px;
-    color: white;
-    transition: transform 0.3s ease;
-    transform: translateX(calc(100% - 10px));
-    white-space: nowrap;
-    background-color: #ff6b6b;
-  `;
-  clearAllButton.textContent = '完整清除資料';
-  
-  // 滑鼠移入時顯示完整按鈕
-  toggle.addEventListener('mouseenter', () => {
-    toggle.style.transform = 'translateX(0)';
-  });
-  
-  // 滑鼠移出時隱藏按鈕
-  toggle.addEventListener('mouseleave', () => {
-    toggle.style.transform = 'translateX(calc(100% - 10px))';
-  });
-
-  // 滑鼠移入時顯示完整按鈕
-  clearAllButton.addEventListener('mouseenter', () => {
-    clearAllButton.style.transform = 'translateX(0)';
-  });
-  
-  // 滑鼠移出時隱藏按鈕
-  clearAllButton.addEventListener('mouseleave', () => {
-    clearAllButton.style.transform = 'translateX(calc(100% - 10px))';
-  });
+  // 只在啟用狀態時添加滑鼠移入/移出效果
+  if (extensionState.isEnabled) {
+    // 滑鼠移入時顯示完整按鈕
+    toggle.addEventListener('mouseenter', () => {
+      toggle.style.transform = 'translateX(0)';
+    });
+    
+    // 滑鼠移出時隱藏按鈕
+    toggle.addEventListener('mouseleave', () => {
+      toggle.style.transform = 'translateX(calc(100% - 10px))';
+    });
+  }
 
   toggle.addEventListener('click', () => {
     const newState = !extensionState.isEnabled;
@@ -120,20 +97,53 @@ function addExtensionToggleButton(extensionState) {
     location.reload();
   });
 
-  // 完整清除資料按鈕點擊事件
-  clearAllButton.addEventListener('click', () => {
-    if (confirm('確定要完整清除所有資料嗎？此操作無法復原。')) {
-      // 清除所有相關的 localStorage 資料
-      localStorage.removeItem(STORAGE_KEYS.ORDER_INFO);
-      localStorage.removeItem(STORAGE_KEYS.EXTENSION_STATE);
-      alert('所有資料已清除，頁面將重新載入。');
-      location.reload();
-    }
-  });
-  
-  // 將按鈕加入容器
+  // 將啟用/停用按鈕加入容器
   buttonContainer.appendChild(toggle);
-  buttonContainer.appendChild(clearAllButton);
+
+  // 只在插件啟用狀態時添加完整清除資料按鈕
+  if (extensionState.isEnabled) {
+    // 創建完整清除資料按鈕
+    const clearAllButton = document.createElement('button');
+    clearAllButton.className = 'btn';
+    clearAllButton.style.cssText = `
+      padding: 5px 10px;
+      border-radius: 4px 0 0 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: white;
+      transition: transform 0.3s ease;
+      transform: translateX(calc(100% - 10px));
+      white-space: nowrap;
+      background-color: #ff6b6b;
+    `;
+    clearAllButton.textContent = '完整清除資料';
+    
+    // 滑鼠移入時顯示完整按鈕
+    clearAllButton.addEventListener('mouseenter', () => {
+      clearAllButton.style.transform = 'translateX(0)';
+    });
+    
+    // 滑鼠移出時隱藏按鈕
+    clearAllButton.addEventListener('mouseleave', () => {
+      clearAllButton.style.transform = 'translateX(calc(100% - 10px))';
+    });
+
+    // 完整清除資料按鈕點擊事件
+    clearAllButton.addEventListener('click', () => {
+      if (confirm('確定要完整清除所有資料嗎？此操作無法復原。')) {
+        // 清除所有相關的 localStorage 資料
+        localStorage.removeItem(STORAGE_KEYS.ORDER_INFO);
+        localStorage.removeItem(STORAGE_KEYS.EXTENSION_STATE);
+        alert('所有資料已清除，頁面將重新載入。');
+        location.reload();
+      }
+    });
+    
+    // 將完整清除資料按鈕加入容器
+    buttonContainer.appendChild(clearAllButton);
+  }
+  
+  // 將按鈕容器加入頁面
   document.body.appendChild(buttonContainer);
 }
 
