@@ -2,7 +2,7 @@ console.log('[DinBenDon Helper] load content.js');
 
 // 全局狀態
 let orderInfo = null;
-let originalTable = null; // 添加全局變數以供其他函數使用
+let originalTable = null;
 const STORAGE_KEYS = {
   ORDER_INFO: 'DinBenDan-Ext-Info',
   EXTENSION_STATE: 'DinBenDan-Ext-Enabled'
@@ -10,7 +10,7 @@ const STORAGE_KEYS = {
 
 // ==== 主要入口 ====
 function init() {
-  console.log('Dinbendon Helper init');
+  console.log('[DinBenDan Helper] init');
 
   // 初始化儲存和取得設定狀態
   initOrderStore();
@@ -47,8 +47,9 @@ function updateExtensionState(isEnabled) {
   localStorage.setItem(STORAGE_KEYS.EXTENSION_STATE, JSON.stringify(store));
 }
 
+
 function addExtensionToggleButton(extensionState) {
-  // 創建按鈕容器
+  // ===== 按鈕容器 =====
   const buttonContainer = document.createElement('div');
   buttonContainer.style.cssText = `
     position: fixed;
@@ -62,23 +63,23 @@ function addExtensionToggleButton(extensionState) {
     ${extensionState.isEnabled ? 'transform: translateX(calc(100% - 20px));' : 'transform: translateX(0);'}
     cursor: default;
   `;
-  
+
   // 當滑鼠移入容器時顯示完整按鈕列
-  buttonContainer.addEventListener('mouseenter', function() {
+  buttonContainer.addEventListener('mouseenter', function () {
     this.style.transform = 'translateX(0)';
   });
-  
+
   // 當滑鼠移出容器時隱藏按鈕列
-  buttonContainer.addEventListener('mouseleave', function() {
+  buttonContainer.addEventListener('mouseleave', function () {
     if (extensionState.isEnabled) {
       this.style.transform = 'translateX(calc(100% - 20px))';
     }
   });
 
-  // 創建啟用/停用按鈕
-  const toggle = document.createElement('button');
-  toggle.className = 'btn';
-  toggle.style.cssText = `
+  // ===== 啟用/停用按鈕 =====
+  const btnToggle = document.createElement('button');
+  btnToggle.className = 'btn';
+  btnToggle.style.cssText = `
     padding: 5px 10px;
     border-radius: 4px 0 0 4px;
     cursor: pointer;
@@ -86,27 +87,27 @@ function addExtensionToggleButton(extensionState) {
     color: white;
     white-space: nowrap;
   `;
-  toggle.textContent = extensionState.isEnabled ? '點擊停用插件' : '點擊啟用插件';
-  toggle.style.backgroundColor = extensionState.isEnabled ? '#dc3545' : '#28a745';
-  toggle.style.cursor = 'pointer';
+  btnToggle.textContent = extensionState.isEnabled ? '停用插件' : '啟用插件';
+  btnToggle.style.backgroundColor = extensionState.isEnabled ? '#dc3545' : '#28a745';
+  btnToggle.style.cursor = 'pointer';
 
-  toggle.addEventListener('click', () => {
+  btnToggle.addEventListener('click', () => {
     const newState = !extensionState.isEnabled;
-    toggle.textContent = newState ? '點擊停用插件' : '點擊啟用插件';
-    toggle.style.backgroundColor = newState ? '#dc3545' : '#28a745';
+    btnToggle.textContent = newState ? '點擊停用插件' : '點擊啟用插件';
+    btnToggle.style.backgroundColor = newState ? '#dc3545' : '#28a745';
     updateExtensionState(newState);
     location.reload();
   });
 
   // 將啟用/停用按鈕加入容器
-  buttonContainer.appendChild(toggle);
+  buttonContainer.appendChild(btnToggle);
 
   // 只在插件啟用狀態時添加完整清除資料按鈕
   if (extensionState.isEnabled) {
     // 創建完整清除資料按鈕
-    const clearAllButton = document.createElement('button');
-    clearAllButton.className = 'btn';
-    clearAllButton.style.cssText = `
+    const btnClear = document.createElement('button');
+    btnClear.className = 'btn';
+    btnClear.style.cssText = `
       padding: 5px 10px;
       border-radius: 4px 0 0 4px;
       cursor: pointer;
@@ -115,11 +116,11 @@ function addExtensionToggleButton(extensionState) {
       white-space: nowrap;
       background-color: #ff6b6b;
     `;
-    clearAllButton.textContent = '完整清除資料';
-    clearAllButton.style.cursor = 'pointer';
+    btnClear.textContent = '完整清除資料';
+    btnClear.style.cursor = 'pointer';
 
     // 完整清除資料按鈕點擊事件
-    clearAllButton.addEventListener('click', () => {
+    btnClear.addEventListener('click', () => {
       if (confirm('確定要完整清除所有資料嗎？此操作無法復原。')) {
         // 清除所有相關的 localStorage 資料
         localStorage.removeItem(STORAGE_KEYS.ORDER_INFO);
@@ -128,11 +129,11 @@ function addExtensionToggleButton(extensionState) {
         location.reload();
       }
     });
-    
+
     // 將完整清除資料按鈕加入容器
-    buttonContainer.appendChild(clearAllButton);
+    buttonContainer.appendChild(btnClear);
   }
-  
+
   // 將按鈕容器加入頁面
   document.body.appendChild(buttonContainer);
 }
@@ -161,14 +162,14 @@ function initOrderStore() {
 
   console.log('[DinBenDan Helper] initOrderStore', orderId);
   const storedData = localStorage.getItem(STORAGE_KEYS.ORDER_INFO);
-  
+
   if (!storedData) {
     console.log('Not found store for order', orderId);
     orderInfo = createNewOrderInfo();
     localStorage.setItem(STORAGE_KEYS.ORDER_INFO, JSON.stringify(orderInfo));
     return;
   }
-  
+
   const parsedInfo = JSON.parse(storedData);
   if (parsedInfo.date !== getDateString()) {
     console.log('Date not match', parsedInfo.date, getDateString());
@@ -188,7 +189,6 @@ function updateOrderPaymentInfo(orderId, buyer, isPaid, noChangeGiven = 0) {
     orderInfo.order_infos = [];
   }
 
-  // 尋找或創建買家的訂單資訊
   let buyerOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
   if (!buyerOrderInfo) {
     buyerOrderInfo = {
@@ -222,16 +222,18 @@ function getActiveTable() {
 function switchToTab(tabId) {
   const tabs_li = document.querySelectorAll('.tabs-component-tab');
   console.log('[DinBenDan Helper] switchToTab', tabs_li);
-  
-  const targetTab = Array.from(tabs_li).find(li => 
+
+  const targetTab = Array.from(tabs_li).find(li =>
     li.children[0].getAttribute('aria-controls') === tabId
   );
-  
+
   if (targetTab) {
     targetTab.children[0].click();
   }
 }
 
+
+// ===== 監聽頁籤變更 =====
 function setupTabChangeListener() {
   const observer = new MutationObserver((mutations) => {
     handleActiveTableChange(mutations);
@@ -244,6 +246,7 @@ function setupTabChangeListener() {
   }
 }
 
+// ===== 處理頁籤變更 =====
 function handleActiveTableChange(saveTab = true) {
   const activeTable = getActiveTable();
   if (!activeTable) return;
@@ -257,11 +260,11 @@ function handleActiveTableChange(saveTab = true) {
   }
 
   if (activeTable.id === 'by-buyer-tab') {
-    // 建立一個新的 observer 來監聽 merge-table 的掛載
+    // 切換到按人統計的頁面後，建立一個新的 observer 來監聽 merge-table 的掛載
     const tableObserver = new MutationObserver((mutations, observer) => {
       const mergeTable = activeTable.querySelector('table.merge-table');
       if (mergeTable) {
-        // 找到 merge-table 後，停止觀察並執行 setup
+        // 當 merge-table 掛載後，停止觀察並執行 setupOrderManagement
         observer.disconnect();
         setupOrderManagement();
       }
@@ -282,7 +285,7 @@ function setupOrderManagement() {
 
   const orgTable = activeTable.querySelector('table.merge-table');
   if (!orgTable) return;
-  
+
   // 保存為全局變數
   originalTable = orgTable;
 
@@ -290,21 +293,21 @@ function setupOrderManagement() {
   initOrderStore();
 
   // 建立 UI 組件
-  const { 
-    filterContainer, 
-    filterInput, 
-    totalAmountValue, 
-    clearButton 
+  const {
+    filterContainer,
+    filterInput,
+    totalAmountValue,
+    clearButton
   } = createFilterUI();
 
   // 插入篩選器到表格前面
   originalTable.parentNode.insertBefore(filterContainer, originalTable);
 
   // 建立已繳費和未繳費的表格
-  const { 
-    tablesContainer, 
-    paidTable, 
-    unpaidTable 
+  const {
+    tablesContainer,
+    paidTable,
+    unpaidTable
   } = createPaymentTables(originalTable);
 
   // 替換原始表格
@@ -379,11 +382,11 @@ function createFilterUI() {
   filterContainer.appendChild(clearButton);
   filterContainer.appendChild(totalAmountContainer);
 
-  return { 
-    filterContainer, 
-    filterInput, 
-    totalAmountValue, 
-    clearButton 
+  return {
+    filterContainer,
+    filterInput,
+    totalAmountValue,
+    clearButton
   };
 }
 
@@ -402,7 +405,7 @@ function createPaymentTables(originalTable) {
   paidTableTitle.textContent = '已繳費訂單';
   paidTableTitle.className = 'mb-3';
   const paidTable = originalTable.cloneNode(true);
-  
+
   // 在已繳費表格中添加未找錢的標頭欄位
   const paidTableHeader = paidTable.querySelector('thead tr');
   if (paidTableHeader) {
@@ -416,7 +419,7 @@ function createPaymentTables(originalTable) {
     // 在表頭首位插入未找錢欄位
     paidTableHeader.insertBefore(noChangeHeader, paidTableHeader.firstChild);
   }
-  
+
   paidTableContainer.appendChild(paidTableTitle);
   paidTableContainer.appendChild(paidTable);
 
@@ -457,7 +460,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
   const calculateTotalAmount = () => {
     const paidRows = paidTable.querySelectorAll('tbody tr');
     let paidTotal = 0;
-    
+
     paidRows.forEach(row => {
       if (row.style.display === 'none') return;
       const moneyCell = row.querySelector('td:nth-child(4)');
@@ -465,7 +468,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
         paidTotal += parseInt(moneyCell.textContent) || 0;
       }
     });
-    
+
     return paidTotal;
   };
 
@@ -487,7 +490,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
       const buyerName = buyerCell.textContent.toLowerCase();
       row.style.display = buyerName.includes(searchText.toLowerCase()) ? '' : 'none';
     });
-    
+
     updateTotalAmount();
   };
 
@@ -527,7 +530,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
       if (isPaid && table === paidTable) {
         const noChangeCell = document.createElement('td');
         noChangeCell.className = 'text-center';
-        
+
         // 創建輸入框容器
         const inputGroup = document.createElement('div');
         inputGroup.className = 'input-group input-group-sm';
@@ -535,7 +538,7 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
           width: 80px;
           margin: 0 auto;
         `;
-        
+
         // 創建輸入框
         const noChangeInput = document.createElement('input');
         noChangeInput.type = 'number';
@@ -548,15 +551,15 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
         `;
         noChangeInput.value = noChangeGiven || 0;
         noChangeInput.min = 0;
-        
+
         // 輸入框變更事件
         noChangeInput.addEventListener('change', (e) => {
           e.stopPropagation(); // 防止觸發整行的點擊事件
           const newAmount = parseInt(e.target.value) || 0;
-          
+
           // 更新存儲的未找錢數量
           updateOrderPaymentInfo(orderId, buyer, true, newAmount);
-          
+
           // 更新輸入框樣式
           if (newAmount > 0) {
             // noChangeInput.style.backgroundColor = '#ffcc00';
@@ -566,17 +569,17 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
             noChangeInput.style.fontWeight = 'normal';
           }
         });
-        
+
         // 設置初始樣式
         if (noChangeGiven > 0) {
           noChangeInput.style.fontWeight = 'bold';
         }
-        
+
         // 防止點擊輸入框時觸發行點擊事件
         noChangeInput.addEventListener('click', (e) => {
           e.stopPropagation();
         });
-        
+
         inputGroup.appendChild(noChangeInput);
         noChangeCell.appendChild(inputGroup);
         // 在行的首位插入未找錢欄位
@@ -600,25 +603,25 @@ function setupTableInteractions(paidTable, unpaidTable, filterInput, totalAmount
   // 處理兩個表格
   processTableRows(paidTable, true);
   processTableRows(unpaidTable, false);
-  
+
   updateTotalAmount();
 }
 
 function moveRowToCorrectTable(row, buyer, targetTable) {
   const targetTbody = targetTable.querySelector('tbody');
-  
+
   // 檢查目標表格是否已經有相同的訂購人
   const existingRow = Array.from(targetTbody.querySelectorAll('tr')).find(
     tr => tr.querySelector('.merged-key')?.textContent === buyer
   );
-  
+
   if (!existingRow) {
     // 檢查目標表格的表頭首欄是否為「未找錢」
     const isTargetTableHasNoChangeColumn = targetTable.querySelector('thead tr th:first-child')?.textContent === '未找錢';
-    
+
     // 檢查行的首欄是否是未找錢欄位（通過檢查其中是否有數字輸入框）
     const hasNoChangeCell = row.querySelector('td:first-child input[type="number"]') !== null;
-    
+
     // 如果移動到未繳費表格，且當前行有未找錢欄位，則移除該欄位
     if (!isTargetTableHasNoChangeColumn && hasNoChangeCell) {
       const firstCell = row.querySelector('td:first-child');
@@ -631,17 +634,17 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
       const orderId = getOrderId();
       const currentOrderInfo = orderInfo.order_infos.find(o => o.order_id === orderId);
       let noChangeGiven = 0;
-      
+
       // 檢查是否有未找錢的狀態
-      if (currentOrderInfo && currentOrderInfo.buyers[buyer] && 
-          typeof currentOrderInfo.buyers[buyer] === 'object') {
+      if (currentOrderInfo && currentOrderInfo.buyers[buyer] &&
+        typeof currentOrderInfo.buyers[buyer] === 'object') {
         noChangeGiven = currentOrderInfo.buyers[buyer].noChangeGiven || 0;
       }
-      
+
       // 創建未找錢欄位
       const noChangeCell = document.createElement('td');
       noChangeCell.className = 'text-center';
-      
+
       // 創建輸入框容器
       const inputGroup = document.createElement('div');
       inputGroup.className = 'input-group input-group-sm';
@@ -649,7 +652,7 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
         width: 80px;
         margin: 0 auto;
       `;
-      
+
       // 創建輸入框
       const noChangeInput = document.createElement('input');
       noChangeInput.type = 'number';
@@ -661,15 +664,15 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
       `;
       noChangeInput.value = noChangeGiven;
       noChangeInput.min = 0;
-      
+
       // 輸入框變更事件
       noChangeInput.addEventListener('change', (e) => {
         e.stopPropagation();
         const newAmount = parseInt(e.target.value) || 0;
-        
+
         // 更新存儲的未找錢數量
         updateOrderPaymentInfo(orderId, buyer, true, newAmount);
-        
+
         // 更新輸入框樣式
         if (newAmount > 0) {
           noChangeInput.style.backgroundColor = '#ffcc00';
@@ -679,24 +682,24 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
           noChangeInput.style.fontWeight = 'normal';
         }
       });
-      
+
       // 設置初始樣式
       if (noChangeGiven > 0) {
         noChangeInput.style.backgroundColor = '#ffcc00';
         noChangeInput.style.fontWeight = 'bold';
       }
-      
+
       // 防止點擊輸入框時觸發行點擊事件
       noChangeInput.addEventListener('click', (e) => {
         e.stopPropagation();
       });
-      
+
       inputGroup.appendChild(noChangeInput);
       noChangeCell.appendChild(inputGroup);
       // 在行的首位插入未找錢欄位
       row.insertBefore(noChangeCell, row.firstChild);
     }
-    
+
     targetTbody.appendChild(row);
   } else {
     // 如果已經存在，則移除當前行
@@ -707,7 +710,7 @@ function moveRowToCorrectTable(row, buyer, targetTable) {
 function setupRowClickHandler(row, buyer, orderId, paidTable, unpaidTable, updateTotalAmount) {
   // 加入游標樣式
   row.style.cursor = 'pointer';
-  
+
   // 加入點擊事件
   row.addEventListener('click', (e) => {
     // 如果點擊的是連結或按鈕，不觸發狀態切換
